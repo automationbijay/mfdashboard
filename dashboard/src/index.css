@@ -4,11 +4,11 @@
   --color-primary: #1E40AF;
   --color-on-primary: #FFFFFF;
   --color-secondary: #3B82F6;
-  --color-accent: #059669;
-  --color-background: #0F172A;
+  --color-accent: #D97706;
+  --color-background: #000000;
   --color-foreground: #FFFFFF;
-  --color-muted: #101A34;
-  --color-border: rgba(255, 255, 255, 0.08);
+  --color-muted: #0A0A0A;
+  --color-border: rgba(255, 255, 255, 0.1);
   --color-destructive: #DC2626;
   --color-ring: #1E40AF;
 }

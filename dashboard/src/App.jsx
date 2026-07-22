@@ -3,6 +3,153 @@ import { ArrowRight, BarChart2, Loader2, AlertCircle, SlidersHorizontal, Chevron
 import { supabase } from './supabase';
 import './App.css';
 
+
+
+const FundCard = ({ fund, activeTab }) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+  const tradeUrl = `${fund.tmsBaseUrl}&transaction=${activeTab === 'buy' ? 'Buy' : 'Sell'}&quantity=${activeTab === 'sell' && fund.myQty > 0 ? fund.myQty : 1000}&price=${activeTab === 'buy' ? (fund.myBid || fund.lowestAsk || fund.price) : (fund.myAsk || fund.highestBid || fund.price)}`;
+  
+  return (
+    <div className={`fund-card glass-card ${fund.flash || ""}`} onClick={() => setIsExpanded(!isExpanded)} style={{ cursor: 'pointer' }}>
+      <div className="fund-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <a href={tradeUrl} target="_blank" rel="noopener noreferrer" className="tms-buy-btn" title={`Trade ${fund.symbol} on TMS`} onClick={(e) => e.stopPropagation()}>
+            {fund.symbol}
+            <ArrowRight size={16} />
+          </a>
+        </div>
+        <button className="expand-btn" onClick={() => setIsExpanded(!isExpanded)} title="Toggle Details">
+          {isExpanded ? <ChevronUp size={24} /> : <ChevronDown size={24} />}
+        </button>
+      </div>
+
+      <div className="primary-metrics-grid">
+        <div className="metric-box">
+          <div className="metric-label">LTP (Market)</div>
+          <div className="metric-value">Rs. {fund.price.toFixed(2)}</div>
+        </div>
+        <div className="metric-box">
+          <div className="metric-label">Discount @ LTP</div>
+          <div className={`metric-badge ${fund.discount < 0 ? 'badge-good' : 'badge-bad'}`}>
+            {fund.discount.toFixed(2)}%
+          </div>
+        </div>
+        <div className="metric-box">
+          <div className="metric-label">Discount @ Highest Bid</div>
+          <div className={`metric-badge ${(fund.highestBidDiscount || 0) < 0 ? 'badge-good' : 'badge-bad'}`}>
+            {(fund.highestBidDiscount || 0).toFixed(2)}%
+          </div>
+        </div>
+      </div>
+
+      <div className={`fund-details ${isExpanded ? 'expanded' : ''}`} style={{ display: isExpanded ? 'block' : 'none', marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+        
+        {/* Core Secondary Metrics */}
+        <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
+          <span className="fund-ticker">Adj NAV: Rs. {fund.nav.toFixed(2)}</span>
+          {fund.myQty > 0 && <span className="fund-ticker">Holding: {fund.myQty} units</span>}
+          {fund.vwap5d > 0 && <span className="fund-ticker" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa' }}>5D VWAP: Rs. {fund.vwap5d.toFixed(2)}</span>}
+          {fund.vol5d > 0 && <span className="fund-ticker" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#a78bfa' }}>5D Vol: {fund.vol5d.toLocaleString()}</span>}
+        </div>
+
+        {/* New Analytics Section */}
+        <div className="analytics-section">
+          <h4>Analytics & Allocation</h4>
+          <div className="analytics-grid">
+            <div className="analytics-item">
+              <span>Total Assets:</span>
+              <strong>{fund.totalAssetsCount || '-'}</strong>
+            </div>
+            <div className="analytics-item">
+              <span>Cap Market (%):</span>
+              <strong>{fund.capitalMarket ? (fund.capitalMarket * 100).toFixed(2) + '%' : '-'}</strong>
+            </div>
+            <div className="analytics-item">
+              <span>Non-Cap Market (%):</span>
+              <strong>{fund.nonCapitalMarket ? (fund.nonCapitalMarket * 100).toFixed(2) + '%' : '-'}</strong>
+            </div>
+            <div className="analytics-item">
+              <span>Cap Market Discount:</span>
+              <strong>{fund.discountPremiumCapMarket ? fund.discountPremiumCapMarket.toFixed(2) + '%' : '-'}</strong>
+            </div>
+            <div className="analytics-item">
+              <span>Nav Date (SS):</span>
+              <strong>{fund.navMonthSharesansar || '-'}</strong>
+            </div>
+            <div className="analytics-item">
+              <span>Monthly Nav Date:</span>
+              <strong>{fund.monthlyNavMonth || fund.navMonthRaw || '-'}</strong>
+            </div>
+          </div>
+        </div>
+
+        {/* Sell Tab Specific PNL */}
+        {activeTab === 'sell' && fund.myQty > 0 && fund.wacc > 0 && (
+          <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            {(() => {
+              const estProfitAmt = (fund.highestBid - fund.wacc) * fund.myQty;
+              const estProfitPct = ((fund.highestBid - fund.wacc) / fund.wacc) * 100;
+              const isProfitable = estProfitAmt >= 0;
+              const insightColor = isProfitable ? 'var(--color-accent)' : 'var(--color-destructive)';
+              const insightBg = isProfitable ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)';
+              
+              return (
+                <div style={{ backgroundColor: insightBg, padding: '1rem', borderRadius: '8px', border: `1px solid ${insightColor}` }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '0.75rem' }}>
+                    <div>
+                      <div className="stat-label" style={{ color: insightColor }}>My WACC</div>
+                      <div className="stat-value monospace-data" style={{ fontSize: '1rem', color: insightColor }}>
+                        Rs. {fund.wacc.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="stat-label" style={{ color: insightColor }}>Market Bid</div>
+                      <div className="stat-value monospace-data" style={{ fontSize: '1rem', color: insightColor }}>
+                        Rs. {fund.highestBid.toFixed(2)}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="stat-label" style={{ color: insightColor }}>Est. Profit</div>
+                      <div className="stat-value monospace-data" style={{ fontSize: '1.1rem', color: insightColor }}>
+                        Rs. {estProfitAmt.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '0.85rem', color: '#94a3b8', borderTop: `1px dashed ${insightColor}`, paddingTop: '0.5rem', opacity: 0.9 }}>
+                    <strong>Insight:</strong> If you sell {fund.myQty} units at the current highest bid of Rs. {fund.highestBid.toFixed(2)}, you will {isProfitable ? 'gain' : 'lose'} <strong>{Math.abs(estProfitPct).toFixed(2)}%</strong> against your WACC.
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        <div className="market-depth">
+          <h4><BarChart2 size={16}/> Market Depth</h4>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '0.75rem' }}>
+            <div>
+              <div style={{ color: 'var(--color-accent)', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>TOP BID</div>
+              <div className="depth-row monospace-data">
+                <span style={{ color: '#94a3b8' }}>{fund.highestBidQty || '-'}</span>
+                <span style={{ color: 'var(--color-accent)' }}>Rs. {fund.highestBid.toFixed(2)}</span>
+              </div>
+            </div>
+            <div>
+              <div style={{ color: 'var(--color-destructive)', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>TOP ASK</div>
+              <div className="depth-row monospace-data">
+                <span style={{ color: 'var(--color-destructive)' }}>Rs. {fund.lowestAsk.toFixed(2)}</span>
+                <span style={{ color: '#94a3b8' }}>{fund.lowestAskQty || '-'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
 function App() {
   const [funds, setFunds] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,10 +232,12 @@ function App() {
             // Here we provide a base URL which we can further customize during render based on the active tab
             const tmsBaseUrl = `https://tms43.nepsetms.com.np/tms/me/memberclientorderentry?symbol=${symbol}&market=continuous`;
             
+            const navVal = safeNum(depth.adjusted_nav ?? fund.adjusted_nav);
+            const highestBidDiscount = navVal > 0 ? ((safeNum(highestBid) - navVal) / navVal) * 100 : 0;
             return {
               id: symbol || Math.random().toString(),
               symbol: symbol || 'Unknown',
-              nav: safeNum(depth.adjusted_nav ?? fund.adjusted_nav),
+              nav: navVal,
               price: safeNum(depth.ltp ?? fund.mf_ltp),
               discount: safeNum(depth.discount_at_ltp ?? fund.discount_premium_adjusted),
               
@@ -96,6 +245,8 @@ function App() {
               highestBidQty: safeNum(highestBidQty),
               lowestAsk: safeNum(lowestAsk),
               lowestAskQty: safeNum(lowestAskQty),
+              
+              highestBidDiscount: highestBidDiscount,
   
               myBid: safeNum(depth.my_bid),
               myBidDiscount: safeNum(depth.my_bid_discount_premium),
@@ -110,7 +261,16 @@ function App() {
               vwap5d: safeNum(avg.vwap_avg_5d || depth.vwap_avg_5d),
               vol5d: safeNum(avg.volume_avg_5d || depth.volume_avg_5d),
 
-              tmsBaseUrl: tmsBaseUrl
+              tmsBaseUrl: tmsBaseUrl,
+              
+              // New secondary details
+              totalAssetsCount: fund.total_assets_count,
+              navMonthRaw: fund['nav month raw'],
+              navMonthSharesansar: fund['nav month sharesansar'],
+              monthlyNavMonth: fund['Monthly Nav Month'],
+              capitalMarket: fund.Capital_Market,
+              nonCapitalMarket: fund.Non_Capital_Market,
+              discountPremiumCapMarket: fund.discount_premium_cap_market
             };
         });
 
@@ -145,6 +305,90 @@ function App() {
     syncRef.current = handleSyncMarketDepth;
   });
 
+
+  // Setup Supabase Realtime Subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:raw_marketdepth')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'raw_marketdepth_nepseapi_new' },
+        (payload) => {
+          const newData = payload.new;
+          if (!newData || !newData.symbol) return;
+          
+          const symbol = newData.symbol.trim().toUpperCase();
+          
+          setFunds(prevFunds => {
+            const index = prevFunds.findIndex(f => f.symbol === symbol);
+            if (index === -1) return prevFunds; // Not in our list
+
+            const safeNum = (val) => (val === null || val === undefined || isNaN(val)) ? 0 : Number(val);
+            
+            const buyDepth = newData.buy_market_depth || [];
+            const sellDepth = newData.sell_market_depth || [];
+            
+            const highestBid = buyDepth.length > 0 ? buyDepth[0].orderBookOrderPrice : 0;
+            const highestBidQty = buyDepth.length > 0 ? buyDepth[0].quantity : 0;
+            const lowestAsk = sellDepth.length > 0 ? sellDepth[0].orderBookOrderPrice : 0;
+            const lowestAskQty = sellDepth.length > 0 ? sellDepth[0].quantity : 0;
+
+            const updatedFund = { ...prevFunds[index] };
+            
+            // Only update if there's an actual change in the crucial numbers to trigger less re-renders
+            const oldPrice = updatedFund.price;
+            const newPrice = safeNum(newData.ltp ?? updatedFund.price);
+            
+            if (oldPrice !== newPrice) {
+               updatedFund.flash = newPrice > oldPrice ? 'flash-up' : 'flash-down';
+            } else {
+               // Also check bid/ask changes
+               if (updatedFund.highestBid !== highestBid || updatedFund.lowestAsk !== lowestAsk) {
+                   updatedFund.flash = 'flash-update';
+               }
+            }
+            
+            // Clear flash after 1s
+            if (updatedFund.flash) {
+               setTimeout(() => {
+                 setFunds(currentFunds => {
+                   const cIndex = currentFunds.findIndex(cf => cf.symbol === symbol);
+                   if (cIndex === -1) return currentFunds;
+                   const newArr = [...currentFunds];
+                   newArr[cIndex] = { ...newArr[cIndex], flash: null };
+                   return newArr;
+                 });
+               }, 1000);
+            }
+
+            const navVal = safeNum(newData.adjusted_nav ?? updatedFund.nav);
+            updatedFund.price = newPrice;
+            updatedFund.nav = navVal;
+            updatedFund.discount = safeNum(newData.discount_at_ltp ?? updatedFund.discount);
+            
+            updatedFund.highestBid = safeNum(highestBid);
+            updatedFund.highestBidQty = safeNum(highestBidQty);
+            updatedFund.lowestAsk = safeNum(lowestAsk);
+            updatedFund.lowestAskQty = safeNum(lowestAskQty);
+            updatedFund.highestBidDiscount = navVal > 0 ? ((safeNum(highestBid) - navVal) / navVal) * 100 : 0;
+
+            // Retain myBid, myAsk, etc if provided in new data
+            if (newData.my_bid !== undefined) updatedFund.myBid = safeNum(newData.my_bid);
+            if (newData.my_ask !== undefined) updatedFund.myAsk = safeNum(newData.my_ask);
+
+            const newArr = [...prevFunds];
+            newArr[index] = updatedFund;
+            return newArr;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   // Setup auto-sync interval
   useEffect(() => {
     if (autoSyncInterval <= 0) return;
@@ -170,6 +414,25 @@ function App() {
   }, []);
 
   // Process data based on active tab, filters, and sort
+
+  // Process data based on active tab, filters, and sort
+  const portfolioSummary = useMemo(() => {
+    let totalInvested = 0;
+    let totalCurrent = 0;
+    
+    funds.forEach(f => {
+      if (f.myQty > 0 && f.wacc > 0) {
+        totalInvested += (f.myQty * f.wacc);
+        totalCurrent += (f.myQty * f.highestBid); // Using highest bid for immediate liquidation value
+      }
+    });
+
+    const profitLoss = totalCurrent - totalInvested;
+    const profitLossPct = totalInvested > 0 ? (profitLoss / totalInvested) * 100 : 0;
+    
+    return { totalInvested, totalCurrent, profitLoss, profitLossPct };
+  }, [funds]);
+  
   const processedFunds = useMemo(() => {
     let filtered = [...funds];
 
@@ -258,6 +521,22 @@ function App() {
           <RefreshCw size={28} className={isSyncing ? "animate-spin" : ""} />
         </button>
       </header>
+
+      {/* Hero Dashboard */}
+      <div className="hero-dashboard glass-card" style={{ padding: '2rem', marginBottom: '2rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Liquidation Value (Top Bid)</div>
+          <div className="monospace-data" style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--color-foreground)', textShadow: '0 0 15px rgba(255,255,255,0.1)' }}>
+            Rs. {portfolioSummary.totalCurrent.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Unrealized P/L</div>
+          <div className={`monospace-data ${portfolioSummary.profitLoss < 0 ? 'badge-bad' : 'badge-good'}`} style={{ fontSize: '1.5rem', padding: '0.5rem 1.25rem', borderRadius: '8px', display: 'inline-block', fontWeight: 700, border: '1px solid' }}>
+            {portfolioSummary.profitLoss > 0 ? '+' : ''}{portfolioSummary.profitLossPct.toFixed(2)}%
+          </div>
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="tabs">
@@ -421,119 +700,7 @@ function App() {
       ) : (
         <main className="fund-list">
           {processedFunds.map(fund => (
-            <div key={fund.id} className="fund-card">
-              <div className="fund-header">
-                <div>
-                  <div className="fund-name monospace-data">{fund.symbol}</div>
-                  <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
-                    {fund.myQty > 0 && <span className="fund-ticker">Holding: {fund.myQty} units</span>}
-                    {fund.vwap5d > 0 && <span className="fund-ticker" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#60a5fa' }}>5D VWAP: Rs. {fund.vwap5d.toFixed(2)}</span>}
-                    {fund.vol5d > 0 && <span className="fund-ticker" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', color: '#a78bfa' }}>5D Vol: {fund.vol5d.toLocaleString()}</span>}
-                  </div>
-                </div>
-                <div className="discount-badge monospace-data" style={{ color: fund.discount < 0 ? 'var(--color-accent)' : 'var(--color-destructive)', borderColor: fund.discount < 0 ? 'rgba(5, 150, 105, 0.3)' : 'rgba(220, 38, 38, 0.3)', backgroundColor: fund.discount < 0 ? 'rgba(5, 150, 105, 0.15)' : 'rgba(220, 38, 38, 0.15)' }}>
-                  {fund.discount.toFixed(2)}%
-                </div>
-              </div>
-
-              <div className="stats-grid">
-                <div className="stat-box">
-                  <div className="stat-label">LTP (Market)</div>
-                  <div className="stat-value monospace-data">Rs. {fund.price.toFixed(2)}</div>
-                </div>
-                <div className="stat-box">
-                  <div className="stat-label">Adjusted NAV</div>
-                  <div className="stat-value monospace-data">Rs. {fund.nav.toFixed(2)}</div>
-                </div>
-              </div>
-
-              {activeTab === 'sell' && fund.myQty > 0 && fund.wacc > 0 && (
-                <div style={{ marginBottom: '1.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {(() => {
-                    const estProfitAmt = (fund.highestBid - fund.wacc) * fund.myQty;
-                    const estProfitPct = ((fund.highestBid - fund.wacc) / fund.wacc) * 100;
-                    const isProfitable = estProfitAmt >= 0;
-                    const insightColor = isProfitable ? 'var(--color-accent)' : 'var(--color-destructive)';
-                    const insightBg = isProfitable ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)';
-                    
-                    return (
-                      <div style={{ backgroundColor: insightBg, padding: '1rem', borderRadius: '8px', border: `1px solid ${insightColor}` }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '0.75rem' }}>
-                          <div>
-                            <div className="stat-label" style={{ color: insightColor }}>My WACC</div>
-                            <div className="stat-value monospace-data" style={{ fontSize: '1rem', color: insightColor }}>
-                              Rs. {fund.wacc.toFixed(2)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="stat-label" style={{ color: insightColor }}>Market Bid</div>
-                            <div className="stat-value monospace-data" style={{ fontSize: '1rem', color: insightColor }}>
-                              Rs. {fund.highestBid.toFixed(2)}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="stat-label" style={{ color: insightColor }}>Est. Profit</div>
-                            <div className="stat-value monospace-data" style={{ fontSize: '1.1rem', color: insightColor }}>
-                              Rs. {estProfitAmt.toFixed(2)}
-                            </div>
-                          </div>
-                        </div>
-                        <div style={{ fontSize: '0.85rem', color: '#94a3b8', borderTop: `1px dashed ${insightColor}`, paddingTop: '0.5rem', opacity: 0.9 }}>
-                          <strong>Insight:</strong> If you sell {fund.myQty} units at the current highest bid of Rs. {fund.highestBid.toFixed(2)}, you will {isProfitable ? 'gain' : 'lose'} <strong>{Math.abs(estProfitPct).toFixed(2)}%</strong> against your WACC.
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
-              <div className="market-depth">
-                <h4><BarChart2 size={16}/> Market Depth</h4>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '0.75rem' }}>
-                  <div>
-                    <div style={{ color: 'var(--color-accent)', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>TOP BID</div>
-                    <div className="depth-row monospace-data">
-                      <span style={{ color: '#94a3b8' }}>{fund.highestBidQty || '-'}</span>
-                      <span style={{ color: 'var(--color-accent)' }}>Rs. {fund.highestBid.toFixed(2)}</span>
-                    </div>
-                    {fund.myBid > 0 && (
-                      <div className="depth-row monospace-data" style={{ borderTop: '1px dashed var(--color-accent)', marginTop: '0.25rem', paddingTop: '0.25rem' }}>
-                        <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>
-                          My Target <span style={{ color: fund.myBidDiscount < 0 ? 'var(--color-accent)' : 'var(--color-destructive)' }}>({fund.myBidDiscount > 0 ? '+' : ''}{fund.myBidDiscount.toFixed(2)}%)</span>
-                        </span>
-                        <span style={{ color: 'var(--color-accent)' }}>Rs. {fund.myBid.toFixed(2)}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <div style={{ color: 'var(--color-destructive)', fontSize: '0.75rem', marginBottom: '0.5rem', fontWeight: 600 }}>TOP ASK</div>
-                    <div className="depth-row monospace-data">
-                      <span style={{ color: 'var(--color-destructive)' }}>Rs. {fund.lowestAsk.toFixed(2)}</span>
-                      <span style={{ color: '#94a3b8' }}>{fund.lowestAskQty || '-'}</span>
-                    </div>
-                    {fund.myAsk > 0 && (
-                      <div className="depth-row monospace-data" style={{ borderTop: '1px dashed var(--color-destructive)', marginTop: '0.25rem', paddingTop: '0.25rem' }}>
-                        <span style={{ color: 'var(--color-destructive)' }}>Rs. {fund.myAsk.toFixed(2)}</span>
-                        <span style={{ color: '#94a3b8', fontSize: '0.7rem' }}>
-                          My Target <span style={{ color: fund.myAskDiscount < 0 ? 'var(--color-accent)' : 'var(--color-destructive)' }}>({fund.myAskDiscount > 0 ? '+' : ''}{fund.myAskDiscount.toFixed(2)}%)</span>
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <a 
-                href={`${fund.tmsBaseUrl}&transaction=${activeTab === 'buy' ? 'Buy' : 'Sell'}&quantity=${activeTab === 'sell' && fund.myQty > 0 ? fund.myQty : 1000}&price=${activeTab === 'buy' ? (fund.myBid || fund.lowestAsk || fund.price) : (fund.myAsk || fund.highestBid || fund.price)}`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="buy-btn"
-                style={{ backgroundColor: activeTab === 'buy' ? 'var(--color-primary)' : 'var(--color-destructive)' }}
-              >
-                Trade on TMS <ArrowRight size={18} />
-              </a>
-            </div>
+            <FundCard key={fund.id} fund={fund} activeTab={activeTab} />
           ))}
         </main>
       )}

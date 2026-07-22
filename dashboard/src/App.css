@@ -476,26 +476,30 @@
   }
   
   .primary-metrics-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
-  
-  /* Make the 3rd metric span full width on mobile if grid is 2 cols */
-  .primary-metrics-grid .metric-box:nth-child(3) {
-    grid-column: span 2;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
   }
   
   .metric-value {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+  }
+  
+  .metric-label {
+    font-size: 0.65rem;
+    letter-spacing: 0;
   }
   
   .metric-badge {
-    font-size: 0.9rem;
-    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
   }
   
   .analytics-grid {
     grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+  
+  .fund-card {
+    padding: 0.75rem;
   }
   
   .fund-header {
@@ -509,17 +513,11 @@
   
   .depth-row {
     font-size: 0.75rem;
+    padding: 0.25rem 0;
   }
 }
 
-@media (max-width: 480px) {
-  .primary-metrics-grid {
-    grid-template-columns: 1fr;
-  }
-  .primary-metrics-grid .metric-box:nth-child(3) {
-    grid-column: span 1;
-  }
-}
+
 
 .hero-dashboard {
   padding: 2rem;

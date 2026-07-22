@@ -523,7 +523,7 @@ function App() {
       </header>
 
       {/* Hero Dashboard */}
-      <div className="hero-dashboard glass-card" style={{ padding: '2rem', marginBottom: '2rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="hero-dashboard glass-card">
         <div>
           <div style={{ color: '#94a3b8', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem', fontWeight: 600 }}>Liquidation Value (Top Bid)</div>
           <div className="monospace-data" style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--color-foreground)', textShadow: '0 0 15px rgba(255,255,255,0.1)' }}>

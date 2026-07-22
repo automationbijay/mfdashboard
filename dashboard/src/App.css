@@ -436,3 +436,110 @@
 .flash-update {
   animation: flashBlue 1s ease-out;
 }
+/* --- MOBILE RESPONSIVENESS --- */
+
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .title {
+    font-size: 1.75rem;
+  }
+  
+  .tabs {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  
+  .tab-btn {
+    font-size: 0.95rem;
+    padding: 0.4rem 0.8rem;
+    flex: 1 1 auto;
+    text-align: center;
+  }
+  
+  .controls-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .sort-select {
+    width: 100%;
+  }
+  
+  .primary-metrics-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  
+  /* Make the 3rd metric span full width on mobile if grid is 2 cols */
+  .primary-metrics-grid .metric-box:nth-child(3) {
+    grid-column: span 2;
+  }
+  
+  .metric-value {
+    font-size: 1.1rem;
+  }
+  
+  .metric-badge {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .analytics-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  }
+  
+  .fund-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .fund-name {
+    font-size: 1.1rem;
+  }
+  
+  .depth-row {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .primary-metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  .primary-metrics-grid .metric-box:nth-child(3) {
+    grid-column: span 1;
+  }
+}
+
+.hero-dashboard {
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border-radius: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .hero-dashboard {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1.25rem;
+  }
+  
+  .hero-dashboard > div {
+    width: 100%;
+    text-align: left !important;
+  }
+}
